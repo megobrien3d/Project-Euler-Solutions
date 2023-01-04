@@ -1,0 +1,74 @@
+{-
+Working from left-to-right if no digit is exceeded by the digit to its left it is called an increasing number; for example, 134468.
+
+Similarly if no digit is exceeded by the digit to its right it is called a decreasing number; for example, 66420.
+
+We shall call a positive integer that is neither increasing nor decreasing a "bouncy" number; for example, 155349.
+
+Clearly there cannot be any bouncy numbers below one-hundred, but just over half of the numbers below one-thousand (525) are bouncy. In fact, the least number for which the proportion of bouncy numbers first reaches 50% is 538.
+
+Surprisingly, bouncy numbers become more and more common and by the time we reach 21780 the proportion of bouncy numbers is equal to 90%.
+
+Find the least number for which the proportion of bouncy numbers is exactly 99%.
+-}
+import Data.Maybe
+import Data.Ratio
+import Data.Char
+
+removeOneDig :: String -> (Char, Maybe String)
+removeOneDig x 
+    | length(x) <= 1 = (head x, Nothing)
+    | otherwise = (head x, Just $ tail x)
+
+isSameOrdingNumber :: (Int -> Int -> Bool) -> String -> Bool
+isSameOrdingNumber f x
+    | isNothing rest = True
+    | otherwise = ( f (digitToInt(first)) (digitToInt(second)) ) && (isSameOrdingNumber f $ fromJust rest)
+    where (first, rest) = removeOneDig $ x
+          (second, _) = removeOneDig (fromJust rest)
+
+isDecreasingNumber :: String -> Bool
+isDecreasingNumber = isSameOrdingNumber (>=) 
+
+isIncreasingNumber :: String -> Bool
+isIncreasingNumber = isSameOrdingNumber (<=) 
+
+isBouncyNumber :: String -> Bool
+isBouncyNumber x = (not $ isDecreasingNumber x) && (not $ isIncreasingNumber x)
+
+countTrue :: [Bool] -> Int
+countTrue xs = length (filter (\i -> i) xs)
+
+proportionWithProperty :: Int -> (String -> Bool) -> Rational
+proportionWithProperty x f = fromIntegral (countTrue $ map f (map (show) [1..x])) % fromIntegral (length [1..x])
+
+newProportionWithProperty :: (String -> Bool) -> Rational -> Int -> Rational
+newProportionWithProperty f currRatio i = (toRational(newVal) + currRatio*toRational(i-1) ) / fromIntegral(i)
+    where newVal
+            | f $ show(i) = 1
+            | otherwise = 0
+
+findLeastIntWithBouncyProperty :: Rational -> Rational -> Int -> Int
+findLeastIntWithBouncyProperty currRatio targetRatio currInt
+    | newRatio == targetRatio = currInt
+    | otherwise = findLeastIntWithBouncyProperty newRatio targetRatio $ currInt+1
+    where newRatio = newProportionWithProperty isBouncyNumber currRatio currInt
+
+{-
+isIncreasingNumber :: Int -> Bool
+isIncreasingNumber x
+    | isNothing rest = True
+    | otherwise = (first <= second) && (isIncreasingNumber $ fromJust rest)
+    where (first, rest) = removeOneDig x
+          (second, _) = removeOneDig (fromJust rest)
+
+-}
+
+main :: IO ()
+main =  do
+print $ proportionWithProperty 21780 isBouncyNumber
+print $ proportionWithProperty 110 isBouncyNumber 
+print $ proportionWithProperty 21781 isBouncyNumber
+print $ newProportionWithProperty isBouncyNumber (9 % 10) 21781
+print $ findLeastIntWithBouncyProperty (9 % 10) (99 % 100) 21781
+print $ proportionWithProperty 1587000 isBouncyNumber
